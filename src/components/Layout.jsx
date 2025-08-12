@@ -11,7 +11,8 @@ import {
   Bell,
   Settings,
   Sun,
-  Moon
+  Moon,
+  MessageCircle
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -62,6 +63,12 @@ function Layout({ children }) {
       href: '/map',
       icon: Map,
       current: isActive('/map')
+    },
+    {
+      name: 'Community',
+      href: '/community',
+      icon: MessageCircle,
+      current: isActive('/community')
     },
     {
       name: 'Profile',

@@ -3,10 +3,10 @@
 // This is a frontend service that demonstrates the integration
 
 const TWILIO_CONFIG = {
-  ACCOUNT_SID: process.env.REACT_APP_TWILIO_ACCOUNT_SID || "your_account_sid_here",
-  AUTH_TOKEN: process.env.REACT_APP_TWILIO_AUTH_TOKEN || "your_auth_token_here",
-  FROM_WHATSAPP: process.env.REACT_APP_FROM_WHATSAPP || 'whatsapp:+14155238886',
-  TO_WHATSAPP: process.env.REACT_APP_TO_WHATSAPP || 'whatsapp:+919999999999'
+  ACCOUNT_SID: import.meta.env.VITE_TWILIO_ACCOUNT_SID || "your_account_sid_here",
+  AUTH_TOKEN: import.meta.env.VITE_TWILIO_AUTH_TOKEN || "your_auth_token_here",
+  FROM_WHATSAPP: import.meta.env.VITE_FROM_WHATSAPP || 'whatsapp:+14155238886',
+  TO_WHATSAPP: import.meta.env.VITE_TO_WHATSAPP || 'whatsapp:+919999999999'
 };
 
 // Send WhatsApp message when issue is submitted

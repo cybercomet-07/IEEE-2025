@@ -15,6 +15,7 @@ import IssueForm from './pages/IssueForm'
 import IssueDetail from './pages/IssueDetail'
 import Profile from './pages/Profile'
 import MapView from './pages/MapView'
+import CommunityDiscussion from './pages/CommunityDiscussion'
 import { useAuth } from './contexts/AuthContext'
 
 // Protected Route Component
@@ -66,6 +67,7 @@ function App() {
                 <Route path="/issues/:id" element={<Layout><IssueDetail /></Layout>} />
                 <Route path="/profile" element={<Layout><Profile /></Layout>} />
                 <Route path="/map" element={<Layout><MapView /></Layout>} />
+                <Route path="/community" element={<Layout><CommunityDiscussion /></Layout>} />
               </Routes>
             </div>
           </IssueProvider>

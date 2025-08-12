@@ -22,6 +22,7 @@ function CitizenDashboard() {
   const { issues, getIssuesByUser } = useIssues()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
+  const [selectedStatus, setSelectedStatus] = useState(null)
 
   // Get user's issues
   const userIssues = user ? getIssuesByUser(user.uid) : []
@@ -32,6 +33,31 @@ function CitizenDashboard() {
     pending: userIssues.filter(i => i.status === 'pending').length,
     inProgress: userIssues.filter(i => i.status === 'in-progress').length,
     resolved: userIssues.filter(i => i.status === 'resolved').length
+  }
+
+  // Filter issues based on selected status
+  const filteredIssues = selectedStatus 
+    ? userIssues.filter(issue => issue.status === selectedStatus)
+    : userIssues
+
+  // Handle status card click
+  const handleStatusClick = (status) => {
+    if (selectedStatus === status) {
+      setSelectedStatus(null) // Clear filter if same status clicked
+    } else {
+      setSelectedStatus(status) // Set new filter
+    }
+  }
+
+  // Get status label for display
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pending': return 'Pending Issues'
+      case 'in-progress': return 'In Progress Issues'
+      case 'resolved': return 'Resolved Issues'
+      case null: return 'Your Recent Issues'
+      default: return 'Your Recent Issues'
+    }
   }
 
   const getStatusColor = (status) => {
@@ -168,11 +194,14 @@ function CitizenDashboard() {
           </div>
         </button>
 
-        <div className={`rounded-lg p-6 text-white transition-all duration-300 ${
-          isDark 
-            ? 'bg-gradient-to-r from-orange-600 to-red-600 shadow-2xl shadow-orange-500/25' 
-            : 'bg-gradient-to-r from-orange-500 to-red-500'
-        } animate-scaleIn stagger-4`}>
+        <button
+          onClick={() => navigate('/community')}
+          className={`rounded-lg p-6 text-white transition-all duration-300 transform hover:scale-105 hover-lift ${
+            isDark 
+              ? 'bg-gradient-to-r from-orange-600 to-red-600 shadow-2xl shadow-orange-500/25 hover:shadow-orange-500/35' 
+              : 'bg-gradient-to-r from-orange-500 to-red-500 hover:shadow-xl'
+          } animate-scaleIn stagger-4`}
+        >
           <div className="flex items-center">
             <div className="p-3 bg-white bg-opacity-20 rounded-lg">
               <Users className="h-8 w-8" />
@@ -182,16 +211,39 @@ function CitizenDashboard() {
               <p className="text-orange-100">Join discussions</p>
             </div>
           </div>
-        </div>
+        </button>
       </div>
+
+      {/* Active Filter Indicator */}
+      {selectedStatus && (
+        <div className="col-span-full mb-2">
+          <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+            isDark 
+              ? 'bg-purple-600/20 text-purple-300 border border-purple-500/30' 
+              : 'bg-purple-100 text-purple-700 border border-purple-300'
+          }`}>
+            <span className="mr-2">🔍</span>
+            Currently showing: <span className="ml-1 font-bold capitalize">{selectedStatus}</span> issues
+            <button
+              onClick={() => setSelectedStatus(null)}
+              className="ml-3 p-1 hover:bg-purple-200 rounded-full transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift ${
-          isDark 
-            ? 'bg-slate-800 border-red-500/30 text-white' 
-            : 'bg-white border-gray-200 text-gray-900'
-        } p-6 animate-slideInUp stagger-1`}>
+        <button
+          onClick={() => handleStatusClick('pending')}
+          className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift cursor-pointer ${
+            isDark 
+              ? `bg-slate-800 border-red-500/30 text-white ${selectedStatus === 'pending' ? 'ring-2 ring-red-400 ring-opacity-50' : ''}` 
+              : `bg-white border-gray-200 text-gray-900 ${selectedStatus === 'pending' ? 'ring-2 ring-red-500 ring-opacity-30' : ''}`
+          } p-6 animate-slideInUp stagger-1 hover:scale-105`}
+        >
           <div className="flex items-center">
             <div className={`p-3 rounded-lg transition-all duration-300 ${
               isDark ? 'bg-red-600/20' : 'bg-red-100'
@@ -207,13 +259,16 @@ function CitizenDashboard() {
               <p className="text-3xl font-bold">{stats.pending}</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift ${
-          isDark 
-            ? 'bg-slate-800 border-yellow-500/30 text-white' 
-            : 'bg-white border-gray-200 text-gray-900'
-        } p-6 animate-slideInUp stagger-2`}>
+        <button
+          onClick={() => handleStatusClick('in-progress')}
+          className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift cursor-pointer ${
+            isDark 
+              ? `bg-slate-800 border-yellow-500/30 text-white ${selectedStatus === 'in-progress' ? 'ring-2 ring-yellow-400 ring-opacity-50' : ''}` 
+              : `bg-white border-gray-200 text-gray-900 ${selectedStatus === 'in-progress' ? 'ring-2 ring-yellow-500 ring-opacity-30' : ''}`
+          } p-6 animate-slideInUp stagger-2 hover:scale-105`}
+        >
           <div className="flex items-center">
             <div className={`p-3 rounded-lg transition-all duration-300 ${
               isDark ? 'bg-yellow-600/20' : 'bg-yellow-100'
@@ -229,13 +284,16 @@ function CitizenDashboard() {
               <p className="text-3xl font-bold">{stats.inProgress}</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift ${
-          isDark 
-            ? 'bg-slate-800 border-green-500/30 text-white' 
-            : 'bg-white border-gray-200 text-gray-900'
-        } p-6 animate-slideInUp stagger-3`}>
+        <button
+          onClick={() => handleStatusClick('resolved')}
+          className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift cursor-pointer ${
+            isDark 
+              ? `bg-slate-800 border-green-500/30 text-white ${selectedStatus === 'resolved' ? 'ring-2 ring-green-400 ring-opacity-50' : ''}` 
+              : `bg-white border-gray-200 text-gray-900 ${selectedStatus === 'resolved' ? 'ring-2 ring-green-500 ring-opacity-30' : ''}`
+          } p-6 animate-slideInUp stagger-3 hover:scale-105`}
+        >
           <div className="flex items-center">
             <div className={`p-3 rounded-lg transition-all duration-300 ${
               isDark ? 'bg-green-600/20' : 'bg-green-100'
@@ -251,13 +309,16 @@ function CitizenDashboard() {
               <p className="text-3xl font-bold">{stats.resolved}</p>
             </div>
           </div>
-        </div>
+        </button>
 
-        <div className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift ${
-          isDark 
-            ? 'bg-slate-800 border-blue-500/30 text-white' 
-            : 'bg-white border-gray-200 text-gray-900'
-        } p-6 animate-slideInUp stagger-4`}>
+        <button
+          onClick={() => handleStatusClick(null)}
+          className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift cursor-pointer ${
+            isDark 
+              ? `bg-slate-800 border-blue-500/30 text-white ${selectedStatus === null ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}` 
+              : `bg-white border-gray-200 text-gray-900 ${selectedStatus === null ? 'ring-2 ring-blue-500 ring-opacity-30' : ''}`
+          } p-6 animate-slideInUp stagger-4 hover:scale-105`}
+        >
           <div className="flex items-center">
             <div className={`p-3 rounded-lg transition-all duration-300 ${
               isDark ? 'bg-blue-600/20' : 'bg-blue-100'
@@ -273,7 +334,7 @@ function CitizenDashboard() {
               <p className="text-3xl font-bold">{stats.total}</p>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       {/* Recent Issues */}
@@ -285,16 +346,30 @@ function CitizenDashboard() {
         <div className={`px-6 py-4 border-b transition-colors duration-300 ${
           isDark ? 'border-purple-600/30' : 'border-gray-200'
         }`}>
-          <h2 className={`text-xl font-bold transition-colors duration-300 ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>Your Recent Issues</h2>
+          <div className="flex items-center justify-between">
+            <h2 className={`text-xl font-bold transition-colors duration-300 ${
+              isDark ? 'text-white' : 'text-gray-900'
+            }`}>{getStatusLabel(selectedStatus)}</h2>
+            {selectedStatus && (
+              <button
+                onClick={() => setSelectedStatus(null)}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors duration-300 ${
+                  isDark 
+                    ? 'bg-purple-600/20 text-purple-300 hover:bg-purple-600/30 border border-purple-500/30' 
+                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300'
+                }`}
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
         </div>
         
         <div className={`divide-y transition-colors duration-300 ${
           isDark ? 'divide-purple-600/30' : 'divide-gray-200'
         }`}>
-          {userIssues.length > 0 ? (
-            userIssues.slice(0, 5).map((issue, index) => (
+          {filteredIssues.length > 0 ? (
+            filteredIssues.slice(0, 10).map((issue, index) => (
               <div key={issue.id} className={`px-6 py-4 transition-all duration-300 hover:scale-[1.02] ${
                 isDark ? 'hover:bg-slate-700/50' : 'hover:bg-gray-50'
               } animate-fadeIn`} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -341,13 +416,19 @@ function CitizenDashboard() {
             ))
           ) : (
             <div className="px-6 py-8 text-center">
-              <div className={`text-6xl mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`}>📋</div>
+              <div className={`text-6xl mb-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`}>
+                {selectedStatus ? '🔍' : '📋'}
+              </div>
               <h3 className={`text-lg font-medium mb-2 transition-colors duration-300 ${
                 isDark ? 'text-gray-300' : 'text-gray-600'
-              }`}>No issues reported yet</h3>
+              }`}>
+                {selectedStatus ? `No ${selectedStatus} issues found` : 'No issues reported yet'}
+              </h3>
               <p className={`text-sm transition-colors duration-300 ${
                 isDark ? 'text-gray-400' : 'text-gray-500'
-              }`}>Start by reporting your first civic issue!</p>
+              }`}>
+                {selectedStatus ? 'Try selecting a different status or report a new issue!' : 'Start by reporting your first civic issue!'}
+              </p>
             </div>
           )}
         </div>

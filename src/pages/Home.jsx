@@ -9,7 +9,8 @@ import {
   Building,
   Phone,
   Mail,
-  Globe
+  Globe,
+  MessageCircle
 } from 'lucide-react';
 import SaharaChatbot from '../components/SaharaChatbot';
 
@@ -20,6 +21,7 @@ function Home() {
     { icon: <Camera className="h-8 w-8 text-blue-600" />, title: "Photo & Video Reports", description: "Capture issues with photos and videos for better documentation" },
     { icon: <MapPin className="h-8 w-8 text-green-600" />, title: "GPS Location Tracking", description: "Automatically capture exact location of civic issues" },
     { icon: <Users className="h-8 w-8 text-purple-600" />, title: "Community Engagement", description: "Connect citizens with local authorities for faster resolution" },
+    { icon: <MessageCircle className="h-8 w-8 text-indigo-600" />, title: "Community Discussion", description: "Share thoughts and engage with fellow citizens on civic matters" },
     { icon: <Shield className="h-8 w-8 text-red-600" />, title: "Secure & Reliable", description: "Your data is protected with enterprise-grade security" },
     { icon: <TrendingUp className="h-8 w-8 text-orange-600" />, title: "Real-time Updates", description: "Track the progress of your reported issues in real-time" },
     { icon: <CheckCircle className="h-8 w-8 text-teal-600" />, title: "Issue Resolution", description: "Streamlined process from reporting to resolution" }
@@ -127,6 +129,7 @@ function Home() {
                   <li><button onClick={() => navigate('/')} className="hover:text-white">Home</button></li>
                   <li><button onClick={() => navigate('/role-selection')} className="hover:text-white">Register</button></li>
                   <li><button onClick={() => navigate('/login')} className="hover:text-white">Login</button></li>
+                  <li><button onClick={() => navigate('/community')} className="hover:text-white">Community Discussion</button></li>
                 </ul>
               </div>
               <div>

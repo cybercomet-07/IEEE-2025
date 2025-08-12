@@ -151,6 +151,22 @@ function AdminDashboard() {
         </button>
       </div>
 
+      {/* Community Discussion Quick Access */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold mb-2">Community Discussion</h2>
+            <p className="text-purple-100">Monitor and engage with citizen discussions and feedback</p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/community'}
+            className="bg-white text-purple-600 px-6 py-2 rounded-lg font-semibold hover:bg-purple-50 transition-colors"
+          >
+            View Discussions
+          </button>
+        </div>
+      </div>
+
       {/* Municipal Area Codes Section */}
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
