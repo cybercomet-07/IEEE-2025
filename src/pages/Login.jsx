@@ -5,7 +5,6 @@ import { Mail, Lock, Eye, EyeOff, Building2 } from 'lucide-react'
 import { db } from '../config/firebase'
 import { doc, getDoc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
-import SaharaChatbot from '../components/SaharaChatbot'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -208,9 +207,6 @@ function Login() {
           </div>
         </form>
       </div>
-      
-      {/* Sahara AI Chatbot */}
-      <SaharaChatbot />
     </div>
   )
 }

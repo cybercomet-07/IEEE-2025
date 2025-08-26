@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
-import SaharaChatbot from './SaharaChatbot'
 
 function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -316,7 +315,6 @@ function Layout({ children }) {
           </div>
         </main>
       </div>
-      <SaharaChatbot />
     </div>
   )
 }

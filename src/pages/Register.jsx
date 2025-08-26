@@ -13,7 +13,6 @@ import {
   ArrowLeft
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import SaharaChatbot from '../components/SaharaChatbot'
 
 function Register() {
   const navigate = useNavigate()
@@ -450,9 +449,6 @@ function Register() {
           </div>
         </form>
       </div>
-      
-      {/* Sahara AI Chatbot */}
-      <SaharaChatbot />
     </div>
   )
 }

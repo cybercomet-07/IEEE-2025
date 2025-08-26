@@ -8,7 +8,6 @@ import {
   MapPin,
   CheckCircle
 } from 'lucide-react'
-import SaharaChatbot from '../components/SaharaChatbot'
 
 function RoleSelection() {
   const navigate = useNavigate()
@@ -195,9 +194,6 @@ function RoleSelection() {
         <div className="floating-bg-element" style={{ top: '60%', right: '15%', width: '80px', height: '80px', background: 'radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%)', borderRadius: '50%' }} />
         <div className="floating-bg-element" style={{ top: '40%', left: '80%', width: '40px', height: '40px', background: 'radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%)', borderRadius: '50%' }} />
       </div>
-      
-      {/* Sahara AI Chatbot */}
-      <SaharaChatbot />
     </div>
   )
 }

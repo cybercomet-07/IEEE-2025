@@ -15,6 +15,7 @@ import {
   MessageSquare
 } from 'lucide-react'
 import { useTheme } from '../contexts/ThemeContext'
+import SaharaChatbot from '../components/SaharaChatbot'
 
 function CitizenDashboard() {
   const navigate = useNavigate()
@@ -474,6 +475,9 @@ function CitizenDashboard() {
           <li className="animate-slideInLeft stagger-5">• ⭐ Upvote other important issues in your area</li>
         </ul>
       </div>
+      
+      {/* Sahara AI Chatbot */}
+      <SaharaChatbot />
     </div>
   )
 }
