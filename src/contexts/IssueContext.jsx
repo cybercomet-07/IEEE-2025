@@ -209,8 +209,13 @@ export function IssueProvider({ children }) {
     return issues.filter(issue => issue.userId === userId)
   }
 
-  // Get issues by municipal corporation
+  // Get issues by municipal corporation (by name or code)
   function getIssuesByMunicipalCorp(municipalCorp) {
+    // If it's a 6-digit code, filter by municipalCode
+    if (municipalCorp && municipalCorp.length === 6 && /^\d{6}$/.test(municipalCorp)) {
+      return issues.filter(issue => issue.municipalCode === municipalCorp)
+    }
+    // Otherwise filter by municipalCorp name
     return issues.filter(issue => issue.municipalCorp === municipalCorp)
   }
 

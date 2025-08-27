@@ -1,5 +1,6 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useEffect } from 'react'
 import { 
   Users, 
   Shield, 
@@ -8,10 +9,23 @@ import {
   MapPin,
   CheckCircle
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 function RoleSelection() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
+
+  // If user is already authenticated, redirect to appropriate dashboard
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin')
+      } else {
+        navigate('/dashboard')
+      }
+    }
+  }, [user, navigate])
 
   const roles = [
     {
@@ -50,42 +64,57 @@ function RoleSelection() {
   const handleRoleSelection = (roleType) => {
     console.log('Role selection clicked:', roleType)
     console.log('Current user:', user)
+    const params = new URLSearchParams(location.search)
+    const mode = params.get('mode') || 'login'
     
-    try {
+    // Store the selected role for subsequent pages
+    localStorage.setItem('selectedRole', roleType)
+
+    // Mode-based routing
+    if (mode === 'register') {
+      // New user registration flows
       if (roleType === 'citizen') {
-        console.log('Navigating to citizen dashboard')
+        navigate('/register/citizen')
+      } else if (roleType === 'admin') {
+        navigate('/register/admin')
+      }
+      return
+    }
+
+    // Login flows
+    if (mode === 'login') {
+      navigate('/login')
+      return
+    }
+
+    // Default behaviour: if already authenticated, go to respective dashboards
+    if (user) {
+      if (roleType === 'admin') {
+        navigate('/admin')
+      } else {
         navigate('/dashboard')
-      } else if (roleType === 'admin') {
-        console.log('Navigating to municipal corporation selection')
-        navigate('/municipal-corp-selection')
       }
-    } catch (error) {
-      console.error('Navigation error:', error)
-      // Fallback navigation
-      if (roleType === 'citizen') {
-        window.location.href = '/dashboard'
-      } else if (roleType === 'admin') {
-        window.location.href = '/municipal-corp-selection'
-      }
+    } else {
+      navigate('/login')
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Full Page Spline Background */}
-      <div className="relative overflow-hidden min-h-screen">
-        {/* Spline Background - Full Page */}
-        <div className="fixed inset-0 w-full h-full">
-          <iframe
-            src="https://my.spline.design/holographicearthwithdynamiclines-CMvEeRSYNFpq5rQu7PkI6E5r/"
-            frameBorder="0"
-            width="100%"
-            height="100%"
-            title="CityPulse 3D Background Animation"
-            style={{ border: "none" }}
-            className="absolute inset-0"
-          />
-        </div>
+                      {/* Full Page Spline Background */}
+        <div className="relative overflow-hidden min-h-screen">
+          {/* Spline Background - Full Page */}
+          <div className="fixed inset-0 w-full h-full">
+            <iframe
+              src="https://my.spline.design/holographicearthwithdynamiclines-CMvEeRSYNFpq5rQu7PkI6E5r/"
+              frameBorder="0"
+              width="100%"
+              height="100%"
+              title="CityPulse 3D Background Animation"
+              style={{ border: "none" }}
+              className="absolute inset-0"
+            />
+          </div>
         
         {/* Dark Overlay for Text Readability */}
         <div className="fixed inset-0 bg-black bg-opacity-40"></div>

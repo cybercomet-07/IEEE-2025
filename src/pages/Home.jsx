@@ -1,4 +1,6 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   MapPin,
   Camera,
@@ -15,6 +17,18 @@ import {
 
 function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // If user is already authenticated, redirect to appropriate dashboard
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin')
+      } else {
+        navigate('/dashboard')
+      }
+    }
+  }, [user, navigate])
 
   const features = [
     { icon: <Camera className="h-8 w-8 text-blue-600" />, title: "Photo & Video Reports", description: "Capture issues with photos and videos for better documentation" },
@@ -35,20 +49,20 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      {/* Full Page Spline Background */}
-      <div className="relative overflow-hidden min-h-screen">
-        {/* Spline Background - Full Page */}
-        <div className="fixed inset-0 w-full h-full">
-          <iframe
-            src="https://my.spline.design/holographicearthwithdynamiclines-CMvEeRSYNFpq5rQu7PkI6E5r/"
-            frameBorder="0"
-            width="100%"
-            height="100%"
-            title="CityPulse 3D Background Animation"
-            style={{ border: "none" }}
-            className="absolute inset-0"
-          />
-        </div>
+                      {/* Full Page Spline Background */}
+        <div className="relative overflow-hidden min-h-screen">
+          {/* Spline Background - Full Page */}
+          <div className="fixed inset-0 w-full h-full">
+            <iframe
+              src="https://my.spline.design/holographicearthwithdynamiclines-CMvEeRSYNFpq5rQu7PkI6E5r/"
+              frameBorder="0"
+              width="100%"
+              height="100%"
+              title="CityPulse 3D Background Animation"
+              style={{ border: "none" }}
+              className="absolute inset-0"
+            />
+          </div>
         
         {/* Dark Overlay for Text Readability */}
         <div className="fixed inset-0 bg-black bg-opacity-40"></div>
@@ -67,8 +81,8 @@ function Home() {
                 CityPulse is India's premier civic issue reporting platform that connects citizens with municipal authorities for faster, more efficient problem resolution.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button onClick={() => navigate('/role-selection')} className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">Get Started</button>
-                <button onClick={() => navigate('/login')} className="border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 hover:scale-105">Sign In</button>
+                <button onClick={() => navigate('/role-selection?mode=register')} className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">Get Started</button>
+                <button onClick={() => navigate('/role-selection?mode=login')} className="border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 hover:scale-105">Login</button>
               </div>
             </div>
           </div>
@@ -126,8 +140,8 @@ function Home() {
                 <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
                 <ul className="space-y-2 text-blue-100">
                   <li><button onClick={() => navigate('/')} className="hover:text-white">Home</button></li>
-                  <li><button onClick={() => navigate('/role-selection')} className="hover:text-white">Register</button></li>
-                  <li><button onClick={() => navigate('/login')} className="hover:text-white">Login</button></li>
+                  <li><button onClick={() => navigate('/role-selection?mode=register')} className="hover:text-white">Register</button></li>
+                  <li><button onClick={() => navigate('/role-selection?mode=login')} className="hover:text-white">Login</button></li>
                   <li><button onClick={() => navigate('/community')} className="hover:text-white">Community Discussion</button></li>
                 </ul>
               </div>

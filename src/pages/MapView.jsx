@@ -1,17 +1,23 @@
-import React, { useState } from 'react'
-import { MapPin, Filter, Layers, Search, AlertTriangle, CheckCircle, Clock, Plus } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { MapPin, Filter, Layers, Search, AlertTriangle, CheckCircle, Clock, Plus, Navigation } from 'lucide-react'
 import { useIssues } from '../contexts/IssueContext'
+import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import MapComponent from '../components/MapComponent'
 
 function MapView() {
   const navigate = useNavigate()
   const { issues, filters, setFilters } = useIssues()
+  const { user } = useAuth()
   const [selectedFilter, setSelectedFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [currentLocation, setCurrentLocation] = useState(null)
+  const [locationLoading, setLocationLoading] = useState(true)
+  const [locationError, setLocationError] = useState(null)
+  const mapRef = useRef(null)
 
   const filterOptions = [
-    { value: 'all', label: 'All Issues', icon: '��' },
+    { value: 'all', label: 'All Issues', icon: '🔵' },
     { value: 'pending', label: 'Pending', icon: '🔴' },
     { value: 'in-progress', label: 'In Progress', icon: '🟡' },
     { value: 'resolved', label: 'Resolved', icon: '🟢' }
@@ -44,20 +50,150 @@ function MapView() {
     }
   }
 
+  // Calculate distance between two coordinates using Haversine formula
+  const calculateDistance = (coord1, coord2) => {
+    const [lat1, lon1] = coord1
+    const [lat2, lon2] = coord2
+    
+    const R = 6371 // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    const distance = R * c
+    
+    return distance
+  }
+
   const filteredIssues = issues.filter(issue => {
+    // If admin, restrict to their municipalCode
+    if (user?.role === 'admin' && user?.municipalCode) {
+      if (issue.municipalCode !== user.municipalCode) return false
+    }
     const matchesFilter = selectedFilter === 'all' || issue.status === selectedFilter
     const matchesSearch = issue.area?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          issue.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          issue.subcategory?.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesFilter && matchesSearch
+  }).sort((a, b) => {
+    // Sort by distance if user location is available
+    if (currentLocation && a.coordinates && b.coordinates) {
+      const distanceA = calculateDistance(currentLocation, [a.coordinates.lat, a.coordinates.lng])
+      const distanceB = calculateDistance(currentLocation, [b.coordinates.lat, b.coordinates.lng])
+      return distanceA - distanceB
+    }
+    // Otherwise sort by date (newest first)
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   })
+
+  // Get user's current location when component mounts
+  useEffect(() => {
+    const getCurrentLocation = () => {
+      if (navigator.geolocation) {
+        setLocationLoading(true)
+        setLocationError(null)
+        
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords
+            setCurrentLocation([latitude, longitude])
+            setLocationLoading(false)
+          },
+          (error) => {
+            console.error('Error getting location:', error)
+            setLocationError('Unable to get your location. Using default location.')
+            // Fallback to Mumbai coordinates if location access is denied
+            setCurrentLocation([19.0760, 72.8777])
+            setLocationLoading(false)
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 minutes
+          }
+        )
+      } else {
+        setLocationError('Geolocation is not supported by this browser.')
+        setCurrentLocation([19.0760, 72.8777])
+        setLocationLoading(false)
+      }
+    }
+
+    getCurrentLocation()
+  }, [])
 
   const handleMarkerClick = (issue) => {
     navigate(`/issues/${issue.id}`)
   }
 
+  const handleRefreshLocation = () => {
+    setLocationLoading(true)
+    setLocationError(null)
+    
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords
+          setCurrentLocation([latitude, longitude])
+          setLocationLoading(false)
+        },
+        (error) => {
+          console.error('Error refreshing location:', error)
+          setLocationError('Unable to refresh location.')
+          setLocationLoading(false)
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 300000
+        }
+      )
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Location Permission Notice */}
+      {!currentLocation && !locationLoading && (
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <Navigation className="h-5 w-5 text-blue-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                <strong>Enable Location Access</strong> to see issues near your current location.
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Click the refresh button in the controls above to try again.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Location Success Notice */}
+      {currentLocation && !locationLoading && (
+        <div className="bg-green-50 border-l-4 border-green-400 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <Navigation className="h-5 w-5 text-green-400" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-700">
+                <strong>Location Found!</strong> The map is now centered on your current location.
+              </p>
+              <p className="text-xs text-green-600 mt-1">
+                You can see issues near you and report new ones in your area.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-6 text-white">
         <h1 className="text-3xl font-bold">Map View 🗺️</h1>
@@ -99,6 +235,35 @@ function MapView() {
               </button>
             ))}
           </div>
+
+          {/* Location Status */}
+          <div className="flex items-center gap-3">
+            {locationLoading ? (
+              <div className="flex items-center gap-2 text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <span className="text-sm">Getting location...</span>
+              </div>
+            ) : currentLocation ? (
+              <div className="flex items-center gap-2 text-green-600">
+                <Navigation className="h-4 w-4" />
+                <span className="text-sm">
+                  📍 {currentLocation[0].toFixed(4)}, {currentLocation[1].toFixed(4)}
+                </span>
+                <button
+                  onClick={handleRefreshLocation}
+                  className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors"
+                  title="Refresh location"
+                >
+                  🔄
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-red-600">
+                <Navigation className="h-4 w-4" />
+                <span className="text-sm">Location unavailable</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -110,33 +275,98 @@ function MapView() {
               <h2 className="text-xl font-bold text-gray-900">City Issue Map</h2>
               <p className="text-gray-600">Interactive map showing all reported civic issues</p>
             </div>
-            <button
-              onClick={() => navigate('/report')}
-              className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Report Issue
-            </button>
+            <div className="flex gap-2">
+              {currentLocation && (
+                <button
+                  onClick={() => {
+                    if (mapRef.current) {
+                      mapRef.current.setView(currentLocation, 15)
+                    }
+                  }}
+                  className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                  title="Center on my location"
+                >
+                  <Navigation className="h-4 w-4 mr-1" />
+                  My Location
+                </button>
+              )}
+              {/* Hide report button for admins */}
+              {user?.role !== 'admin' && (
+                <button
+                  onClick={() => navigate('/report')}
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Report Issue
+                </button>
+              )}
+            </div>
           </div>
         </div>
         
+        {/* Location Error Message */}
+        {locationError && (
+          <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-700">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <Navigation className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm">{locationError}</p>
+                <p className="text-xs mt-1">The map will show Mumbai as the default location.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Map Component */}
-        <MapComponent
-          issues={filteredIssues}
-          center={[19.0760, 72.8777]}
-          zoom={13}
-          height="400px"
-          showMarkers={true}
-          onMarkerClick={handleMarkerClick}
-          className="w-full"
-        />
+        {locationLoading ? (
+          <div className="h-[400px] bg-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Getting your location...</p>
+              <p className="text-sm text-gray-500">Please allow location access to see issues near you</p>
+            </div>
+          </div>
+        ) : (
+          <MapComponent
+            ref={mapRef}
+            issues={filteredIssues}
+            center={currentLocation || [19.0760, 72.8777]}
+            zoom={currentLocation ? 15 : 13}
+            height="400px"
+            showMarkers={true}
+            showCurrentLocation={!!currentLocation}
+            onMarkerClick={handleMarkerClick}
+            className="w-full"
+          />
+        )}
       </div>
 
       {/* Issue List */}
       <div className="bg-white rounded-lg shadow-lg border border-gray-200">
         <div className="p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Issues in View</h2>
-          <p className="text-gray-600">{filteredIssues.length} issues found</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Issues in View</h2>
+              <p className="text-gray-600">
+                {filteredIssues.length} issues found
+                {currentLocation && (
+                  <span className="ml-2 text-blue-600">
+                    • {filteredIssues.filter(issue => 
+                      issue.coordinates && 
+                      calculateDistance(currentLocation, [issue.coordinates.lat, issue.coordinates.lng]) <= 5
+                    ).length} within 5km of you
+                  </span>
+                )}
+              </p>
+            </div>
+            {currentLocation && (
+              <div className="text-sm text-gray-500">
+                📍 Your location: {currentLocation[0].toFixed(4)}, {currentLocation[1].toFixed(4)}
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="divide-y divide-gray-200">
@@ -163,6 +393,9 @@ function MapView() {
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>📍 {issue.area || 'Unknown area'}</span>
                       <span>👍 {issue.upvotes || 0} upvotes</span>
+                      {issue.coordinates && currentLocation && (
+                        <span>📏 {calculateDistance(currentLocation, [issue.coordinates.lat, issue.coordinates.lng]).toFixed(1)} km away</span>
+                      )}
                       {issue.coordinates && (
                         <span>🗺️ {issue.coordinates.lat.toFixed(4)}, {issue.coordinates.lng.toFixed(4)}</span>
                       )}
@@ -220,6 +453,7 @@ function MapView() {
       </div>
 
       {/* Quick Actions */}
+      {user?.role !== 'admin' && (
       <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg p-6 text-center">
         <h2 className="text-2xl font-bold mb-4">Need to Report an Issue? 🚨</h2>
         <p className="text-xl mb-6">Help improve your city by reporting problems you see</p>
@@ -231,6 +465,7 @@ function MapView() {
           Report New Issue
         </button>
       </div>
+      )}
     </div>
   )
 }

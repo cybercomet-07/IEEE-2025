@@ -1,25 +1,67 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { Mail, Lock, Eye, EyeOff, Building2 } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Building2, Hash } from 'lucide-react'
 import { db } from '../config/firebase'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { getMunicipalCodeByName, isValidMunicipalCode, getMunicipalNameByCode } from '../utils/municipalCorporations'
 import toast from 'react-hot-toast'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [municipalCode, setMunicipalCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { login, signInWithGoogle } = useAuth()
+  const { login, signInWithGoogle, user } = useAuth()
   const navigate = useNavigate()
+  
+  // Check if user is trying to login as admin
+  const isAdminLogin = localStorage.getItem('selectedRole') === 'admin'
+
+  // If user is already authenticated, redirect to appropriate dashboard
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin')
+      } else {
+        navigate('/dashboard')
+      }
+    }
+  }, [user, navigate])
 
   const validateForm = () => {
     if (!email || !password) {
       toast.error('Email and password are required.')
       return false
     }
+    
+    // Validate municipal code for admin login
+    if (isAdminLogin && !municipalCode) {
+      toast.error('Municipal Corporation Code is required for admin login.')
+      return false
+    }
+    
+    if (isAdminLogin && !isValidMunicipalCode(municipalCode)) {
+      toast.error('Please enter a valid 6-digit Municipal Corporation Code.')
+      return false
+    }
+    
     return true
+  }
+
+  // Refresh user data after municipal code update
+  const refreshUserData = async (uid) => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', uid))
+      if (userDoc.exists()) {
+        const userData = userDoc.data()
+        // Force a page reload to refresh the user context
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -35,11 +77,49 @@ function Login() {
       const userDoc = await getDoc(doc(db, 'users', result.user.uid))
       const userRole = userDoc.data()?.role || 'citizen'
       
-      // Redirect based on role
-      if (userRole === 'admin') {
+      // Check if user had selected a role before login
+      const selectedRole = localStorage.getItem('selectedRole')
+      
+      // For admin login, update the user's municipal code if provided
+      if (isAdminLogin && userRole === 'admin' && municipalCode) {
+        try {
+          // Get the municipal corporation name from the code
+          const municipalCorpName = getMunicipalNameByCode(municipalCode)
+          
+          await updateDoc(doc(db, 'users', result.user.uid), {
+            municipalCode: municipalCode,
+            areaName: municipalCorpName || 'Municipal Area',
+            selectedMunicipalCorp: municipalCorpName || 'Municipal Corporation',
+            updatedAt: new Date().toISOString()
+          })
+          toast.success('Municipal Corporation Code updated successfully!')
+          refreshUserData(result.user.uid) // Refresh user data after successful update
+        } catch (error) {
+          console.error('Error updating municipal code:', error)
+          // Continue with login even if update fails
+        }
+      }
+      
+      // Redirect based on selected role or user's actual role
+      if (selectedRole === 'admin' && userRole === 'admin') {
+        // Admin user with municipal code can go directly to admin dashboard
         navigate('/admin')
-      } else {
+        localStorage.removeItem('selectedRole')
+      } else if (selectedRole === 'citizen' || userRole === 'citizen') {
         navigate('/dashboard')
+        localStorage.removeItem('selectedRole')
+      } else {
+        // Fallback to role-based navigation
+        if (userRole === 'admin') {
+          // Check if admin user has a municipal code
+          if (userDoc.data()?.municipalCode) {
+            navigate('/admin')
+          } else {
+            navigate('/municipal-corp-selection')
+          }
+        } else {
+          navigate('/dashboard')
+        }
       }
       
       toast.success('Login successful!')
@@ -60,11 +140,49 @@ function Login() {
       const userDoc = await getDoc(doc(db, 'users', result.user.uid))
       const userRole = userDoc.data()?.role || 'citizen'
       
-      // Redirect based on role
-      if (userRole === 'admin') {
+      // Check if user had selected a role before login
+      const selectedRole = localStorage.getItem('selectedRole')
+      
+      // For admin login, update the user's municipal code if provided
+      if (isAdminLogin && userRole === 'admin' && municipalCode) {
+        try {
+          // Get the municipal corporation name from the code
+          const municipalCorpName = getMunicipalNameByCode(municipalCode)
+          
+          await updateDoc(doc(db, 'users', result.user.uid), {
+            municipalCode: municipalCode,
+            areaName: municipalCorpName || 'Municipal Area',
+            selectedMunicipalCorp: municipalCorpName || 'Municipal Corporation',
+            updatedAt: new Date().toISOString()
+          })
+          toast.success('Municipal Corporation Code updated successfully!')
+          refreshUserData(result.user.uid) // Refresh user data after successful update
+        } catch (error) {
+          console.error('Error updating municipal code:', error)
+          // Continue with login even if update fails
+        }
+      }
+      
+      // Redirect based on selected role or user's actual role
+      if (selectedRole === 'admin' && userRole === 'admin') {
+        // Admin user with municipal code can go directly to admin dashboard
         navigate('/admin')
-      } else {
+        localStorage.removeItem('selectedRole')
+      } else if (selectedRole === 'citizen' || userRole === 'citizen') {
         navigate('/dashboard')
+        localStorage.removeItem('selectedRole')
+      } else {
+        // Fallback to role-based navigation
+        if (userRole === 'admin') {
+          // Check if admin user has a municipal code
+          if (userDoc.data()?.municipalCode) {
+            navigate('/admin')
+          } else {
+            navigate('/municipal-corp-selection')
+          }
+        } else {
+          navigate('/dashboard')
+        }
       }
     } catch (error) {
       console.error('Google sign-in error:', error)
@@ -86,6 +204,14 @@ function Login() {
           <p className="mt-2 text-center text-sm text-gray-600">
             Sign in to your account to continue
           </p>
+          {isAdminLogin && (
+            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-800 text-center">
+                <Building2 className="h-4 w-4 inline mr-1" />
+                Admin Login: Please enter your Municipal Corporation Code
+              </p>
+            </div>
+          )}
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -144,6 +270,36 @@ function Login() {
                 </button>
               </div>
             </div>
+            
+            {/* Municipal Corporation Code field - only show for admin login */}
+            {isAdminLogin && (
+              <div>
+                <label htmlFor="municipalCode" className="block text-sm font-medium text-gray-700">
+                  Municipal Corporation Code
+                </label>
+                <div className="mt-1 relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Hash className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="municipalCode"
+                    name="municipalCode"
+                    type="text"
+                    autoComplete="off"
+                    required
+                    value={municipalCode}
+                    onChange={(e) => setMunicipalCode(e.target.value)}
+                    className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                    placeholder="Enter 6-digit municipal code"
+                    maxLength="6"
+                    pattern="[0-9]{6}"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter the 6-digit code for your Municipal Corporation
+                </p>
+              </div>
+            )}
           </div>
 
           <div>

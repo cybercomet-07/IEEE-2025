@@ -51,12 +51,13 @@ function Layout({ children }) {
       icon: Home,
       current: isActive('/dashboard') || isActive('/admin')
     },
-    {
+    // Hide Report Issue for admins
+    ...(user?.role === 'admin' ? [] : [{
       name: 'Report Issue',
       href: '/report',
       icon: Plus,
       current: isActive('/report')
-    },
+    }]),
     {
       name: 'Map View',
       href: '/map',

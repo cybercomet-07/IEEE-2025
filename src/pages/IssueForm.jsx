@@ -7,6 +7,7 @@ import CommunityImpactTracker from '../components/CommunityImpactTracker'
 import SmartRouteOptimizer from '../components/SmartRouteOptimizer'
 import WeatherIntegration from '../components/WeatherIntegration'
 import { sendIssueConfirmationWhatsApp, sendIssueAlertToAuthorities } from '../services/twilio'
+import { getMunicipalCodeByName } from '../utils/municipalCorporations'
 import { 
   Camera, 
   MapPin, 
@@ -35,6 +36,7 @@ function IssueForm() {
     category: '',
     subcategory: '',
     municipalCorp: '',
+    municipalCode: '',
     area: '',
     address: '',
     coordinates: null,
@@ -174,6 +176,15 @@ function IssueForm() {
       setFormData(prev => ({
         ...prev,
         subcategory: ''
+      }))
+    }
+    
+    // If municipal corporation is selected, automatically set the municipal code
+    if (name === 'municipalCorp' && value) {
+      const municipalCode = getMunicipalCodeByName(value)
+      setFormData(prev => ({
+        ...prev,
+        municipalCode: municipalCode || ''
       }))
     }
     
@@ -445,6 +456,10 @@ function IssueForm() {
     
     if (!formData.municipalCorp) {
       newErrors.municipalCorp = 'Municipal Corporation is required'
+    }
+    
+    if (!formData.municipalCode) {
+      newErrors.municipalCode = 'Municipal Code is required'
     }
     
     if (!formData.area.trim()) {

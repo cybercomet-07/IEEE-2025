@@ -10,9 +10,14 @@ import {
   Filter,
   Search,
   Edit,
-  Building
+  Building,
+  MapPin,
+  Shield,
+  Users
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
+import { db } from '../config/firebase'
+import { collection, getDocs, updateDoc, doc as fsDoc, query, where } from 'firebase/firestore'
 
 function AdminDashboard() {
   const { user } = useAuth()
@@ -23,9 +28,14 @@ function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
-    if (user?.selectedMunicipalCorp) {
-      // Calculate statistics only for the selected corporation
-      const corporationIssues = getIssuesByMunicipalCorp(user.selectedMunicipalCorp)
+    if (user?.municipalCode) {
+      console.log('Admin municipalCode:', user.municipalCode)
+      console.log('All issues:', issues)
+      
+      // Calculate statistics only for the admin's municipal corporation
+      const corporationIssues = getIssuesByMunicipalCorp(user.municipalCode)
+      console.log('Filtered corporation issues:', corporationIssues)
+      
       const total = corporationIssues.length
       const pending = corporationIssues.filter(i => i.status === 'pending').length
       const inProgress = corporationIssues.filter(i => i.status === 'in-progress').length
@@ -38,19 +48,90 @@ function AdminDashboard() {
         resolved
       })
     } else {
+      console.log('No municipalCode found for admin user:', user)
       setStats({})
     }
-  }, [issues, getIssuesByMunicipalCorp, user?.selectedMunicipalCorp])
+  }, [issues, getIssuesByMunicipalCorp, user?.municipalCode])
 
-  // Get issues for the user's selected municipal corporation
-  const corporationIssues = user?.selectedMunicipalCorp ? 
-    getIssuesByMunicipalCorp(user.selectedMunicipalCorp) : []
+  // One-time migration: backfill municipalCode for Pune issues
+  useEffect(() => {
+    const runMigration = async () => {
+      try {
+        const flagKey = 'migration_pune_code_100133_done'
+        if (localStorage.getItem(flagKey)) return
+        if (user?.municipalCode !== '100133') return
+
+        // Fetch all issues for Pune corporation and backfill missing municipalCode
+        const issuesRef = collection(db, 'issues')
+        const q = query(issuesRef, where('municipalCorp', '==', 'Pune Municipal Corporation'))
+        const snapshot = await getDocs(q)
+        const updates = []
+        snapshot.forEach(d => {
+          const data = d.data()
+          if (!data.municipalCode || String(data.municipalCode).trim() === '') {
+            updates.push(updateDoc(fsDoc(db, 'issues', d.id), { municipalCode: '100133' }))
+          }
+        })
+        if (updates.length > 0) {
+          await Promise.allSettled(updates)
+        }
+        localStorage.setItem(flagKey, '1')
+      } catch (e) {
+        console.error('Pune municipalCode migration error:', e)
+      }
+    }
+    runMigration()
+  }, [user?.municipalCode])
+
+  // Migration: Update user's municipal corporation information if it doesn't match the code
+  useEffect(() => {
+    const runUserMigration = async () => {
+      try {
+        if (!user?.municipalCode) return
+        
+        const flagKey = `migration_user_municipal_${user.municipalCode}_done`
+        if (localStorage.getItem(flagKey)) return
+
+        // Import the function dynamically to avoid circular dependencies
+        const { getMunicipalNameByCode } = await import('../utils/municipalCorporations')
+        const municipalCorpName = getMunicipalNameByCode(user.municipalCode)
+        
+        if (municipalCorpName && user.areaName !== municipalCorpName) {
+          // Update user document with correct municipal corporation information
+          await updateDoc(fsDoc(db, 'users', user.uid), {
+            areaName: municipalCorpName,
+            selectedMunicipalCorp: municipalCorpName,
+            updatedAt: new Date().toISOString()
+          })
+          console.log('Updated user municipal corporation information')
+        }
+        
+        localStorage.setItem(flagKey, '1')
+      } catch (e) {
+        console.error('User municipal corporation migration error:', e)
+      }
+    }
+    runUserMigration()
+  }, [user?.municipalCode, user?.uid, user?.areaName])
+
+  // Get issues for the admin's municipal corporation
+  const corporationIssues = user?.municipalCode ? 
+    getIssuesByMunicipalCorp(user.municipalCode) : []
   
   const filteredIssues = getFilteredIssues()
   const searchFilteredIssues = corporationIssues.filter(issue =>
     issue.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     issue.userName?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Debug logging
+  console.log('Admin user:', user)
+  console.log('Admin municipalCode:', user?.municipalCode)
+  console.log('Admin areaName:', user?.areaName)
+  console.log('Admin selectedMunicipalCorp:', user?.selectedMunicipalCorp)
+  console.log('All issues count:', issues.length)
+  console.log('Corporation issues count:', corporationIssues.length)
+  console.log('Search filtered issues count:', searchFilteredIssues.length)
 
   const handleStatusUpdate = async (issueId, newStatus) => {
     try {
@@ -105,21 +186,21 @@ function AdminDashboard() {
     ).join(' ')
   }
 
-  // Check if user has selected a municipal corporation
-  if (!user?.selectedMunicipalCorp) {
+  // Check if user has a municipal code (admin users should have this)
+  if (!user?.municipalCode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <Building className="h-24 w-24 text-green-600 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Municipal Corporation Not Selected</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Municipal Code Not Found</h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl">
-            Please select your Municipal Corporation to access the admin dashboard and manage civic issues.
+            Admin users must have a valid municipal code to access the dashboard and manage civic issues.
           </p>
           <button
-            onClick={() => window.location.href = '/municipal-corp-selection'}
+            onClick={() => window.location.href = '/login'}
             className="bg-green-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors"
           >
-            Select Municipal Corporation
+            Go to Login
           </button>
         </div>
       </div>
@@ -128,27 +209,53 @@ function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-          {user?.selectedMunicipalCorp ? (
-            <div className="flex items-center space-x-2 mt-2">
-              <Building className="h-5 w-5 text-green-600" />
-              <p className="text-green-600 font-medium">{user.selectedMunicipalCorp}</p>
+      {/* Header with Municipal Corporation Code Bar */}
+      <div className="bg-gradient-to-r from-blue-600 to-green-600 rounded-lg shadow-lg p-6 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Building className="h-6 w-6 text-blue-200" />
+                <span className="text-blue-100 font-medium">Municipal Code:</span>
+                <span className="bg-white text-blue-600 px-3 py-1 rounded-lg font-bold text-lg">
+                  {user.municipalCode}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-5 w-5 text-green-200" />
+                <span className="text-green-100 font-medium">Area:</span>
+                <span className="bg-white text-green-600 px-3 py-1 rounded-lg font-semibold">
+                  {user.areaName || 'Municipal Area'}
+                </span>
+              </div>
             </div>
-          ) : (
-            <p className="text-gray-600 mt-2">Manage and monitor civic issues across the city</p>
-          )}
+            <div className="flex items-center space-x-4 mt-3">
+              <div className="flex items-center space-x-2">
+                <Shield className="h-5 w-5 text-yellow-200" />
+                <span className="text-yellow-100 font-medium">Designation:</span>
+                <span className="bg-white text-yellow-600 px-3 py-1 rounded-lg font-semibold">
+                  {user.designation || 'Administrator'}
+                </span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-purple-200" />
+                <span className="text-purple-100 font-medium">Department:</span>
+                <span className="bg-white text-purple-600 px-3 py-1 rounded-lg font-semibold">
+                  {user.department || 'General'}
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="btn-secondary bg-white text-blue-600 hover:bg-blue-50 inline-flex items-center mt-4 sm:mt-0"
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+          </button>
         </div>
-        
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="btn-secondary inline-flex items-center mt-4 sm:mt-0"
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Filters
-        </button>
       </div>
 
       {/* Community Discussion Quick Access */}
@@ -167,53 +274,51 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Municipal Area Codes Section */}
+      {/* Municipal Area Information Section */}
       <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <Building className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-bold text-gray-900">Municipal Area Codes</h2>
+            <h2 className="text-xl font-bold text-gray-900">Your Municipal Area Details</h2>
           </div>
           <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
-            {user?.municipalCode || 'No Code Set'}
+            Active Administrator
           </span>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Mumbai Area Codes */}
-          <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Admin's Municipal Area */}
+          <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-900">Mumbai</h3>
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Maharashtra</span>
+              <h3 className="font-semibold text-blue-900">{user.areaName || 'Your Area'}</h3>
+              <span className="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded">Primary</span>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Andheri West:</span>
-                <span className="text-sm font-medium text-blue-600">MUM-001</span>
+                <span className="text-sm text-blue-700">Municipal Code:</span>
+                <span className="text-sm font-bold text-blue-900">{user.municipalCode}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Bandra East:</span>
-                <span className="text-sm font-medium text-blue-600">MUM-002</span>
+                <span className="text-sm text-blue-700">Designation:</span>
+                <span className="text-sm font-medium text-blue-900">{user.designation || 'Admin'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Colaba:</span>
-                <span className="text-sm font-medium text-blue-600">MUM-003</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Dadar:</span>
-                <span className="text-sm font-medium text-blue-600">MUM-004</span>
+                <span className="text-sm text-blue-700">Department:</span>
+                <span className="text-sm font-medium text-blue-900">{user.department || 'General'}</span>
               </div>
             </div>
           </div>
 
-          {/* Delhi Area Codes */}
-          <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+          {/* Statistics Summary */}
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-gray-900">Delhi</h3>
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Delhi</span>
+              <h3 className="font-semibold text-gray-900">Total Issues</h3>
+              <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">Summary</span>
             </div>
             <div className="space-y-2">
               <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Total:</span>
+                <span className="text-sm font-bold text-gray-900">{stats.total || 0}</span>
                 <span className="text-sm text-gray-600">Connaught Place:</span>
                 <span className="text-sm font-medium text-blue-600">DEL-001</span>
               </div>
@@ -538,12 +643,29 @@ function AdminDashboard() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => setSelectedIssue(issue)}
-                      className="text-primary-600 hover:text-primary-900"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleStatusUpdate(issue.id, 'in-progress')}
+                        className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                        title="Mark In Progress"
+                      >
+                        In Progress
+                      </button>
+                      <button
+                        onClick={() => handleStatusUpdate(issue.id, 'resolved')}
+                        className="px-2 py-1 rounded bg-green-100 text-green-800 hover:bg-green-200"
+                        title="Mark Resolved"
+                      >
+                        Resolved
+                      </button>
+                      <button
+                        onClick={() => setSelectedIssue(issue)}
+                        className="text-primary-600 hover:text-primary-900"
+                        title="Edit status"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
