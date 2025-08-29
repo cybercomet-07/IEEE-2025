@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   MapPin,
@@ -19,8 +18,6 @@ import {
 function Home() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const splineRef = useRef(null);
-  const containerRef = useRef(null);
 
   // Remove automatic redirect - let users see the home page
   // Users can manually navigate to their dashboard using the buttons
@@ -29,65 +26,6 @@ function Home() {
   console.log('Home component rendered, user:', user);
   console.log('User role:', user?.role);
   console.log('User email:', user?.email);
-
-  // Add interactive mouse movement to Spline background
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (splineRef.current && containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        // Calculate normalized coordinates (0 to 1)
-        const normalizedX = x / rect.width;
-        const normalizedY = y / rect.height;
-        
-        // Apply subtle movement to the Spline container
-        const moveX = (normalizedX - 0.5) * 20; // Max 20px movement
-        const moveY = (normalizedY - 0.5) * 20;
-        
-        splineRef.current.style.transform = `translate(${moveX}px, ${moveY}px)`;
-      }
-
-      // Mouse trail effect
-      const trail = document.querySelector('.mouse-trail');
-      if (trail) {
-        trail.style.left = e.clientX + 'px';
-        trail.style.top = e.clientY + 'px';
-        trail.style.opacity = '1';
-        
-        // Hide trail after a short delay
-        setTimeout(() => {
-          trail.style.opacity = '0';
-        }, 100);
-      }
-    };
-
-    const handleMouseLeave = () => {
-      if (splineRef.current) {
-        splineRef.current.style.transform = 'translate(0px, 0px)';
-      }
-      
-      // Hide mouse trail
-      const trail = document.querySelector('.mouse-trail');
-      if (trail) {
-        trail.style.opacity = '0';
-      }
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('mousemove', handleMouseMove);
-      container.addEventListener('mouseleave', handleMouseLeave);
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener('mousemove', handleMouseMove);
-        container.removeEventListener('mouseleave', handleMouseLeave);
-      }
-    };
-  }, []);
 
   const features = [
     { icon: <Camera className="h-8 w-8 text-blue-600" />, title: "Photo & Video Reports", description: "Capture issues with photos and videos for better documentation" },
@@ -109,22 +47,17 @@ function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
                       {/* Full Page Spline Background */}
-        <div className="relative overflow-hidden min-h-screen" ref={containerRef}>
+        <div className="relative overflow-hidden min-h-screen">
           {/* Spline Background - Full Page */}
           <div className="fixed inset-0 w-full h-full">
             <iframe
-              ref={splineRef}
               src="https://my.spline.design/holographicearthwithdynamiclines-CMvEeRSYNFpq5rQu7PkI6E5r/"
               frameBorder="0"
               width="100%"
               height="100%"
               title="CityPulse 3D Background Animation"
-              style={{ 
-                border: "none",
-                transition: "transform 0.3s ease-out",
-                cursor: "grab"
-              }}
-              className="absolute inset-0 spline-interactive"
+              style={{ border: "none" }}
+              className="absolute inset-0"
             />
           </div>
         
@@ -273,35 +206,6 @@ function Home() {
         <div className="floating-bg-element" style={{ top: '20%', left: '10%', width: '60px', height: '60px', background: 'radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%)', borderRadius: '50%' }} />
         <div className="floating-bg-element" style={{ top: '60%', right: '15%', width: '80px', height: '80px', background: 'radial-gradient(circle, rgba(34, 197, 94, 0.1) 0%, transparent 70%)', borderRadius: '50%' }} />
         <div className="floating-bg-element" style={{ top: '40%', left: '80%', width: '40px', height: '40px', background: 'radial-gradient(circle, rgba(37, 99, 235, 0.1) 0%, transparent 70%)', borderRadius: '50%' }} />
-        
-        {/* Interactive Floating Particles */}
-        <div className="fixed inset-0 pointer-events-none z-0">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-blue-300 rounded-full floating-particle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationDuration: `${2 + Math.random() * 3}s`
-              }}
-            />
-          ))}
-        </div>
-        
-        {/* Mouse Trail Effect */}
-        <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="mouse-trail" style={{
-            position: 'absolute',
-            width: '4px',
-            height: '4px',
-            background: 'rgba(59, 130, 246, 0.6)',
-            borderRadius: '50%',
-            pointerEvents: 'none',
-            transition: 'all 0.1s ease'
-          }} />
-        </div>
       </div>
     </div>
   );
