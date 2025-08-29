@@ -94,31 +94,86 @@
   }
 }
 
-@keyframes mesh-gradient {
-  0%, 100% {
-    background-position: 0% 50%;
+/* New Interactive Spline Background Animations */
+@keyframes spline-float {
+  0%, 100% { 
+    transform: translate(0px, 0px) scale(1);
   }
-  50% {
-    background-position: 100% 50%;
+  25% { 
+    transform: translate(5px, -5px) scale(1.02);
+  }
+  50% { 
+    transform: translate(-3px, 3px) scale(0.98);
+  }
+  75% { 
+    transform: translate(2px, -2px) scale(1.01);
   }
 }
 
-.floating-bg-element {
-  position: absolute;
-  opacity: 0.1;
+@keyframes particle-float {
+  0%, 100% { 
+    transform: translateY(0px) scale(1);
+    opacity: 0.6;
+  }
+  50% { 
+    transform: translateY(-20px) scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes mouse-trail-fade {
+  0% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% { 
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
+/* Interactive Spline Background Styles */
+.spline-interactive {
+  transition: transform 0.3s ease-out;
+  cursor: grab;
+}
+
+.spline-interactive:hover {
+  transform: scale(1.05);
+  transition: transform 0.5s ease-out;
+}
+
+.spline-interactive:active {
+  cursor: grabbing;
+}
+
+/* Floating Particles */
+.floating-particle {
+  animation: particle-float 3s ease-in-out infinite;
   pointer-events: none;
-  border-radius: 50%;
-  animation: pulse-glow 4s ease-in-out infinite;
 }
 
-.floating-bg-element:nth-child(1) { 
-  animation: float-slow 8s ease-in-out infinite, pulse-glow 4s ease-in-out infinite; 
+/* Mouse Trail */
+.mouse-trail {
+  animation: mouse-trail-fade 0.3s ease-out;
+  pointer-events: none;
+  z-index: 1000;
 }
-.floating-bg-element:nth-child(2) { 
-  animation: float-medium 6s ease-in-out infinite, pulse-glow 4s ease-in-out infinite 1s; 
+
+/* Enhanced Background Elements */
+.floating-bg-element {
+  animation: float-slow 6s ease-in-out infinite;
+  pointer-events: none;
 }
-.floating-bg-element:nth-child(3) { 
-  animation: float-fast 10s ease-in-out infinite, pulse-glow 4s ease-in-out infinite 2s; 
+
+.floating-bg-element:nth-child(2) {
+  animation: float-medium 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.floating-bg-element:nth-child(3) {
+  animation: float-fast 7s ease-in-out infinite;
+  animation-delay: 4s;
 }
 
 /* Enhanced text readability for hero section */

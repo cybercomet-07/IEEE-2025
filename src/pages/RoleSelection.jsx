@@ -119,14 +119,6 @@ function RoleSelection() {
         {/* Dark Overlay for Text Readability */}
         <div className="fixed inset-0 bg-black bg-opacity-40"></div>
         
-        {/* CityPulse Logo - Overlapping on Background */}
-        <div className="fixed top-8 left-8 z-20">
-          <div className="flex items-center space-x-3">
-            <Building className="h-12 w-12 text-white drop-shadow-lg" />
-            <span className="text-3xl font-bold text-white drop-shadow-lg">CityPulse</span>
-          </div>
-        </div>
-        
         {/* Navigation */}
         <nav className="relative z-10 bg-white bg-opacity-10 backdrop-blur-sm border-b border-white border-opacity-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
