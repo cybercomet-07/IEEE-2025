@@ -12,23 +12,21 @@ import {
   Phone,
   Mail,
   Globe,
-  MessageCircle
+  MessageCircle,
+  LogOut
 } from 'lucide-react';
 
 function Home() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
-  // If user is already authenticated, redirect to appropriate dashboard
-  useEffect(() => {
-    if (user) {
-      if (user.role === 'admin') {
-        navigate('/admin')
-      } else {
-        navigate('/dashboard')
-      }
-    }
-  }, [user, navigate])
+  // Remove automatic redirect - let users see the home page
+  // Users can manually navigate to their dashboard using the buttons
+  
+  // Debug logging
+  console.log('Home component rendered, user:', user);
+  console.log('User role:', user?.role);
+  console.log('User email:', user?.email);
 
   const features = [
     { icon: <Camera className="h-8 w-8 text-blue-600" />, title: "Photo & Video Reports", description: "Capture issues with photos and videos for better documentation" },
@@ -73,6 +71,25 @@ function Home() {
         <div className="relative z-10 min-h-screen flex items-center">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 w-full">
             <div className="text-center animate-fadeIn">
+              {/* Welcome message for logged-in users */}
+              {user && (
+                <div className="mb-8 p-4 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg border border-white border-opacity-30 max-w-md mx-auto">
+                  <p className="text-white text-lg font-medium">
+                    Welcome back, {user.displayName || user.email}! 👋
+                  </p>
+                  <p className="text-blue-100 text-sm mt-1">
+                    You're logged in as a {user.role}
+                  </p>
+                  <button 
+                    onClick={logout}
+                    className="mt-3 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm transition-colors duration-300 flex items-center gap-2 mx-auto"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </button>
+                </div>
+              )}
+              
               <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 drop-shadow-lg">
                 Transform Your City
                 <span className="text-blue-300 block drop-shadow-lg">One Issue at a Time</span>
@@ -81,8 +98,23 @@ function Home() {
                 CityPulse is India's premier civic issue reporting platform that connects citizens with municipal authorities for faster, more efficient problem resolution.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <button onClick={() => navigate('/role-selection?mode=register')} className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">Get Started</button>
-                <button onClick={() => navigate('/role-selection?mode=login')} className="border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 hover:scale-105">Login</button>
+                {user ? (
+                  // User is logged in - show dashboard buttons
+                  <>
+                    <button onClick={() => navigate(user.role === 'admin' ? '/admin' : '/dashboard')} className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">
+                      Go to {user.role === 'admin' ? 'Admin' : 'Citizen'} Dashboard
+                    </button>
+                    <button onClick={() => navigate('/role-selection?mode=register')} className="border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 hover:scale-105">
+                      Create New Account
+                    </button>
+                  </>
+                ) : (
+                  // User is not logged in - show regular buttons
+                  <>
+                    <button onClick={() => navigate('/role-selection?mode=register')} className="bg-white text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold hover:bg-blue-50 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl">Get Started</button>
+                    <button onClick={() => navigate('/role-selection?mode=login')} className="border-2 border-white text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all duration-300 hover:scale-105">Login</button>
+                  </>
+                )}
               </div>
             </div>
           </div>
