@@ -10,8 +10,7 @@
     "lint": "eslint . --ext js,jsx,ts,tsx",
     "firebase:serve": "firebase emulators:start",
     "firebase:deploy": "firebase deploy",
-    "setup": "node setup.js",
-    "postinstall": "cd functions && npm install"
+    "setup": "node setup.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
