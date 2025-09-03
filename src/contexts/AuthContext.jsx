@@ -4,6 +4,10 @@ import {
   createUserWithEmailAndPassword, 
   signInWithPopup, 
   GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
   signOut,
   onAuthStateChanged,
   updateProfile
@@ -96,7 +100,20 @@ export function AuthProvider({ children }) {
   async function signInWithGoogle() {
     try {
       const provider = new GoogleAuthProvider()
-      const result = await signInWithPopup(auth, provider)
+      provider.setCustomParameters({ prompt: 'select_account' })
+
+      // Prefer popup, fall back to redirect if blocked
+      let result
+      try {
+        result = await signInWithPopup(auth, provider)
+      } catch (err) {
+        // If popup is blocked or cancelled due to another popup, fallback to redirect
+        if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/cancelled-popup-request') {
+          await signInWithRedirect(auth, provider)
+          return // Flow will continue in getRedirectResult handler below
+        }
+        throw err
+      }
       
       // Check if user document exists
       const userDoc = await getDoc(doc(db, 'users', result.user.uid))
@@ -146,6 +163,35 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    // Ensure auth state persists between reloads
+    setPersistence(auth, browserLocalPersistence).catch(() => {})
+
+    // Handle redirect result for Google sign-in fallback
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          // Ensure Firestore user doc exists
+          const userDoc = await getDoc(doc(db, 'users', result.user.uid))
+          if (!userDoc.exists()) {
+            await setDoc(doc(db, 'users', result.user.uid), {
+              uid: result.user.uid,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              role: 'citizen',
+              createdAt: new Date().toISOString(),
+              photoURL: result.user.photoURL
+            })
+          }
+          toast.success('Welcome back!')
+        }
+      })
+      .catch((error) => {
+        // Surface meaningful redirect errors but don't block app
+        if (error?.code && error.code !== 'auth/no-auth-event') {
+          toast.error(error.message)
+        }
+      })
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         // Get user data including role and municipal corporation

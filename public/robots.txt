@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://citypulse.in/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+
+# Allow important pages
+Allow: /
+Allow: /role-selection
+Allow: /login
+Allow: /register
+Allow: /community
