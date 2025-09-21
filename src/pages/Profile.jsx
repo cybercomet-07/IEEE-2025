@@ -76,6 +76,25 @@ function Profile() {
   const userIssues = user ? getIssuesByUser(user.uid) : []
   const stats = getStatistics()
   
+  // Debug logging with useEffect to catch timing issues
+  useEffect(() => {
+    console.log('🔍 Profile useEffect Debug:', {
+      user: user ? { uid: user.uid, email: user.email } : null,
+      allIssues: issues.length,
+      userIssues: userIssues.length,
+      userIssuesData: userIssues,
+      timestamp: new Date().toISOString()
+    })
+  }, [user, issues, userIssues])
+  
+  // Additional debug logging
+  console.log('🔍 Profile Render Debug:', {
+    user: user ? { uid: user.uid, email: user.email } : null,
+    allIssues: issues.length,
+    userIssues: userIssues.length,
+    userIssuesData: userIssues
+  })
+  
   // Calculate user-specific statistics
   let userStats = {
     totalIssues: userIssues.length,
@@ -87,18 +106,7 @@ function Profile() {
     memberSince: user?.createdAt || new Date().toISOString()
   }
 
-  // If no real issues, show sample statistics for development
-  if (userIssues.length === 0) {
-    userStats = {
-      totalIssues: 3,
-      pendingIssues: 1,
-      resolvedIssues: 1,
-      inProgressIssues: 1,
-      upvotesReceived: 22,
-      commentsMade: 7,
-      memberSince: user?.createdAt || new Date().toISOString()
-    }
-  }
+  // Always use real statistics - no fallback to mock data
 
   // Get user's most active category
   const getUserMostActiveCategory = () => {
@@ -129,41 +137,7 @@ function Profile() {
     comments: issue.comments?.length || 0
   }))
 
-  // If no real issues, show sample data for development
-  if (userActivity.length === 0) {
-    userActivity = [
-      {
-        id: 'sample-1',
-        action: 'reported',
-        issue: 'Broken Street Light on Main Road',
-        time: '2 hours ago',
-        status: 'pending',
-        category: 'electricity-lighting',
-        upvotes: 3,
-        comments: 1
-      },
-      {
-        id: 'sample-2',
-        action: 'reported',
-        issue: 'Garbage Pile Near Central Park',
-        time: '1 day ago',
-        status: 'in-progress',
-        category: 'waste-management',
-        upvotes: 7,
-        comments: 2
-      },
-      {
-        id: 'sample-3',
-        action: 'reported',
-        issue: 'Pothole on Highway Road',
-        time: '3 days ago',
-        status: 'resolved',
-        category: 'roads-transport',
-        upvotes: 12,
-        comments: 4
-      }
-    ]
-  }
+  // Always use real activity data - no fallback to mock data
 
   // Helper function to get time ago
   function getTimeAgo(timestamp) {
@@ -597,19 +571,19 @@ function Profile() {
               <p className="text-gray-600 capitalize">
                 {user?.role || 'Citizen'}
               </p>
-              {userStats.totalIssues > 0 && (
-                <div className="mt-2">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    userStats.totalIssues >= 10 ? 'bg-purple-100 text-purple-800' :
-                    userStats.totalIssues >= 5 ? 'bg-blue-100 text-blue-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {userStats.totalIssues >= 10 ? '🏆 Active Contributor' :
-                     userStats.totalIssues >= 5 ? '⭐ Regular Reporter' :
-                     '🌱 New Reporter'}
-                  </span>
-                </div>
-              )}
+              <div className="mt-2">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  userStats.totalIssues >= 10 ? 'bg-purple-100 text-purple-800' :
+                  userStats.totalIssues >= 5 ? 'bg-blue-100 text-blue-800' :
+                  userStats.totalIssues > 0 ? 'bg-green-100 text-green-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {userStats.totalIssues >= 10 ? '🏆 Active Contributor' :
+                   userStats.totalIssues >= 5 ? '⭐ Regular Reporter' :
+                   userStats.totalIssues > 0 ? '🌱 New Reporter' :
+                   '👋 Welcome!'}
+                </span>
+              </div>
               {user?.municipalCode && (
                 <p className="text-sm text-gray-500 mt-1">
                   Municipal Corp: {user.municipalCode}
@@ -624,10 +598,15 @@ function Profile() {
                 <Calendar className="h-4 w-4" />
                 Member since {new Date(userStats.memberSince).toLocaleDateString()}
               </p>
-              {userStats.totalIssues > 0 && (
+              {userStats.totalIssues > 0 ? (
                 <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1">
                   <TrendingUp className="h-4 w-4" />
                   Most active in {getCategoryIcon(mostActiveCategory)} {mostActiveCategory.replace('-', ' ')}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1">
+                  <TrendingUp className="h-4 w-4" />
+                  Ready to make a difference!
                 </p>
               )}
 

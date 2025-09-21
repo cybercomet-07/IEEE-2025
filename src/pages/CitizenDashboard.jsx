@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useIssues } from '../contexts/IssueContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -24,9 +24,39 @@ function CitizenDashboard() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedStatus, setSelectedStatus] = useState(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Get user's issues
   const userIssues = user ? getIssuesByUser(user.uid) : []
+  
+  // Debug logging with useEffect to catch timing issues
+  useEffect(() => {
+    console.log('🔍 Dashboard useEffect Debug:', {
+      user: user ? { uid: user.uid, email: user.email } : null,
+      allIssues: issues.length,
+      userIssues: userIssues.length,
+      userIssuesData: userIssues,
+      timestamp: new Date().toISOString(),
+      refreshKey
+    })
+  }, [user, issues, userIssues, refreshKey])
+  
+  // Force refresh when refreshKey changes
+  useEffect(() => {
+    if (refreshKey > 0) {
+      console.log('🔄 Dashboard forced refresh triggered')
+      // Force a re-render by updating state
+      setSelectedStatus(null)
+    }
+  }, [refreshKey])
+  
+  // Additional debug logging
+  console.log('🔍 Dashboard Render Debug:', {
+    user: user ? { uid: user.uid, email: user.email } : null,
+    allIssues: issues.length,
+    userIssues: userIssues.length,
+    userIssuesData: userIssues
+  })
   
   // Use real issues data instead of mock data
   const stats = {
@@ -111,11 +141,26 @@ function CitizenDashboard() {
           ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 shadow-2xl shadow-purple-500/25' 
           : 'bg-gradient-to-r from-blue-600 to-purple-600 shadow-xl'
       } animate-fadeIn`}>
-        <h1 className="text-3xl font-bold animate-slideInUp">Welcome to CityPulse! 🏙️</h1>
-        <p className="text-xl mt-2 animate-slideInUp stagger-1">Your civic issue reporting dashboard</p>
-        <p className={`mt-1 animate-slideInUp stagger-2 ${
-          isDark ? 'text-purple-200' : 'text-blue-100'
-        }`}>Make your city better, one issue at a time</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl font-bold animate-slideInUp">Welcome to CityPulse! 🏙️</h1>
+            <p className="text-xl mt-2 animate-slideInUp stagger-1">Your civic issue reporting dashboard</p>
+            <p className={`mt-1 animate-slideInUp stagger-2 ${
+              isDark ? 'text-purple-200' : 'text-blue-100'
+            }`}>Make your city better, one issue at a time</p>
+          </div>
+          <button
+            onClick={() => setRefreshKey(prev => prev + 1)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+              isDark 
+                ? 'bg-white/20 text-white hover:bg-white/30' 
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+            title="Refresh data"
+          >
+            🔄 Refresh
+          </button>
+        </div>
       </div>
 
       {/* Quick Actions */}
@@ -236,7 +281,7 @@ function CitizenDashboard() {
       )}
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div key={refreshKey} className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <button
           onClick={() => handleStatusClick('pending')}
           className={`rounded-lg shadow-lg border transition-all duration-300 hover-lift cursor-pointer ${

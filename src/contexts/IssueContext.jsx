@@ -59,6 +59,11 @@ export function IssueProvider({ children }) {
       console.log('Database instance:', db)
       console.log('Storage instance:', storage)
       
+      // Check if database is properly initialized
+      if (!db) {
+        throw new Error('Firebase database not initialized')
+      }
+      
       setLoading(true)
       
       // Temporarily skip media upload to test basic functionality
@@ -89,6 +94,16 @@ export function IssueProvider({ children }) {
       console.log('IssueContext: Clean issue document to create:', cleanIssueDoc)
       console.log('IssueContext: About to call addDoc...')
 
+      // Test database connection first
+      try {
+        console.log('IssueContext: Testing database connection...')
+        const testCollection = collection(db, 'issues')
+        console.log('IssueContext: Collection reference created successfully')
+      } catch (connectionError) {
+        console.error('IssueContext: Database connection test failed:', connectionError)
+        throw new Error(`Database connection failed: ${connectionError.message}`)
+      }
+
       const docRef = await addDoc(collection(db, 'issues'), cleanIssueDoc)
       console.log('IssueContext: Issue document created successfully with ID:', docRef.id)
       
@@ -102,7 +117,21 @@ export function IssueProvider({ children }) {
       console.error('Error stack:', error.stack)
       console.error('Full error object:', error)
       
-      toast.error(`Failed to report issue: ${error.message}`)
+      // More specific error messages
+      let errorMessage = 'Failed to report issue'
+      if (error.code === 'permission-denied') {
+        errorMessage = 'Permission denied. Please check your authentication.'
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Service temporarily unavailable. Please try again.'
+      } else if (error.code === 'unauthenticated') {
+        errorMessage = 'Please log in to report an issue.'
+      } else if (error.message.includes('database not initialized')) {
+        errorMessage = 'Database connection error. Please refresh the page.'
+      } else {
+        errorMessage = `Failed to report issue: ${error.message}`
+      }
+      
+      toast.error(errorMessage)
       throw error
     } finally {
       setLoading(false)
@@ -206,7 +235,15 @@ export function IssueProvider({ children }) {
 
   // Get issues by user
   function getIssuesByUser(userId) {
-    return issues.filter(issue => issue.userId === userId)
+    const filtered = issues.filter(issue => issue.userId === userId)
+    console.log('🔍 getIssuesByUser Debug:', {
+      userId,
+      totalIssues: issues.length,
+      filteredIssues: filtered.length,
+      allUserIds: issues.map(issue => issue.userId),
+      filteredIssuesData: filtered
+    })
+    return filtered
   }
 
   // Get issues by municipal corporation (by name or code)

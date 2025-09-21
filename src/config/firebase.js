@@ -42,4 +42,13 @@ export const storage = getStorage(app);
 export const functions = getFunctions(app);
 export const analytics = getAnalytics(app);
 
+// Test Firebase connection
+console.log('Firebase services initialized:', {
+  auth: !!auth,
+  db: !!db,
+  storage: !!storage,
+  functions: !!functions,
+  analytics: !!analytics
+});
+
 export default app;
